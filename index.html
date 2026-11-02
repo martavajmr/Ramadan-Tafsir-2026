@@ -9,66 +9,11 @@
 const $=id=>document.getElementById(id);let audios=[],folders=[],selected=null,filter='All',current=null;const audio=$('audio');let favs=new Set(JSON.parse(localStorage.getItem('rt_favs')||'[]'));let recent=JSON.parse(localStorage.getItem('rt_recent')||'[]');
 function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function fmt(s){return Number.isFinite(s)?Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'):'0:00'}
 function photo(src,name,cls='photo'){let initials=(name||'').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();return `<img class="${cls}" src="${esc(src||'')}" onerror="this.outerHTML='<div class=\'${cls} fallback\'>${esc(initials||'SH')}</div>'" alt="">`}
-function function showHome(){
-  selected=null;
-  $('home').classList.remove('hidden');
-  $('detail').classList.add('hidden');
-  $('search').placeholder='Search Sheikh…';
-  $('search').value='';
-  renderFolders();
-}{selected=null;$('home').classList.remove('hidden');$('detail').classList.add('hidden');$('search').placeholder='Search Sheikh…';$('search').value='';renderFolders()}
-function function openFolder(name, addHistory=true){
-  selected=folders.find(f=>f.name===name);
-  if(!selected)return;
-
-  filter='All';
-  $('yearContent').classList.add('hidden');
-  $('open2026').classList.remove('hidden');
-  $('home').classList.add('hidden');
-  $('detail').classList.remove('hidden');
-  $('search').value='';
-  $('search').placeholder='Search this Sheikh’s recordings…';
-
-  $('heroName').textContent=selected.name;
-  $('heroCount').textContent=selected.items.length+' recordings';
-  $('heroLogo').src=selected.logo||'';
-  $('heroLogo').onerror=()=>{$('heroLogo').style.display='none'};
-  $('heroLogo').style.display='';
-
-  document.querySelectorAll('#filters button').forEach(b=>
-    b.classList.toggle('active',b.dataset.filter==='All')
-  );
-
-  renderRecords();
-
-  if(addHistory){
-    history.pushState({screen:'detail',sheikh:selected.name},'','#'+encodeURIComponent(selected.name));
-  }
-}{selected=folders.find(f=>f.name===name);if(!selected)return;filter='All';$('yearContent').classList.add('hidden');$('open2026').classList.remove('hidden');$('home').classList.add('hidden');$('detail').classList.remove('hidden');$('search').value='';$('search').placeholder='Search this Sheikh’s recordings…';$('heroName').textContent=selected.name;$('heroCount').textContent=selected.items.length+' recordings';$('heroLogo').src=selected.logo||'';$('heroLogo').onerror=()=>{$('heroLogo').style.display='none'};$('heroLogo').style.display='';document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('active',b.dataset.filter==='All'));renderRecords()}
+function showHome(){selected=null;$('home').classList.remove('hidden');$('detail').classList.add('hidden');$('search').placeholder='Search Sheikh…';$('search').value='';renderFolders()}
+function openFolder(name){selected=folders.find(f=>f.name===name);if(!selected)return;filter='All';$('yearContent').classList.add('hidden');$('open2026').classList.remove('hidden');$('home').classList.add('hidden');$('detail').classList.remove('hidden');$('search').value='';$('search').placeholder='Search this Sheikh’s recordings…';$('heroName').textContent=selected.name;$('heroCount').textContent=selected.items.length+' recordings';$('heroLogo').src=selected.logo||'';$('heroLogo').onerror=()=>{$('heroLogo').style.display='none'};$('heroLogo').style.display='';document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('active',b.dataset.filter==='All'));renderRecords()}
 function renderFolders(){let q=$('search').value.toLowerCase().trim();let rows=folders.filter(f=>f.name.toLowerCase().includes(q));$('sheikhcount').textContent=rows.length+' Sheikhs';$('sheikhs').innerHTML=rows.length?rows.map(f=>`<article class="sheikh" data-folder="${esc(f.name)}">${photo(f.logo,f.name)}<div><div class="sheikhname">${esc(f.name)}</div><div class="sheikhmeta">${f.items.length} recordings · 2026 Tafseer</div></div><span class="arrow">›</span></article>`).join(''):'<div class="empty">No Sheikh found.</div>'}
 function renderRecords(){let q=$('search').value.toLowerCase().trim();let rows=selected.items.filter(a=>(filter==='All'||a.session===filter)&&(!q||(a.sheikh+' '+a.session+' '+a.file).toLowerCase().includes(q))).sort((a,b)=>(a.day||999)-(b.day||999)||a.file.localeCompare(b.file));$('count').textContent=(filter==='All'?'Duka · ':'')+rows.length+' recordings';$('records').innerHTML=rows.length?rows.map(a=>`<article class="record">${photo(a.logo,a.sheikh)}<div class="info"><div class="name">${esc(a.session==='Muhadara'?'Muhadara':('Tafseer Day '+(a.day||'' )+(a.session==='Tafsir'?'':(' '+a.session))))}</div><div class="meta">${esc(a.session)}${a.day?' · Ramadan '+a.day:''} · ${esc(a.format)}</div></div><div class="actions"><button class="iconbtn ${favs.has(a.id)?'fav':''}" data-fav="${esc(a.id)}">${favs.has(a.id)?'♥':'♡'}</button><button class="play" data-play="${esc(a.id)}">${current&&current.id===a.id&&!audio.paused?'Ⅱ':'▶'}</button></div></article>`).join(''):'<div class="empty">No recordings in this category.</div>'}
 function play(a){if(current&&current.id===a.id){audio.paused?audio.play():audio.pause();return}current=a;audio.src=a.url;audio.play().catch(()=>{});$('nowtitle').textContent=a.sheikh;$('nowmeta').textContent=a.session+(a.day?' · Ramadan '+a.day:'');$('nowlogo').src=a.logo||'';recent=[a.id,...recent.filter(x=>x!==a.id)].slice(0,30);localStorage.setItem('rt_recent',JSON.stringify(recent));if('mediaSession'in navigator){navigator.mediaSession.metadata=new MediaMetadata({title:a.session+(a.day?' · Ramadan '+a.day:''),artist:a.sheikh,album:'Ramadan Tafseer 2026'});navigator.mediaSession.setActionHandler('play',()=>audio.play());navigator.mediaSession.setActionHandler('pause',()=>audio.pause())}renderRecords()}
-$('sheikhs').addEventListener('click',e=>{let c=e.target.closest('[data-folder]');if(c)openFolder(c.dataset.folder)});$('back').onclick=()=>history.back();$('open2026').onclick=()=>{
-  $('yearContent').classList.remove('hidden');
-  $('open2026').classList.add('hidden');
-  history.pushState({screen:'year',sheikh:selected.name},'','#year');
-};$('filters').addEventListener('click',e=>{let b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('active',x===b));renderRecords()});$('records').addEventListener('click',e=>{let p=e.target.closest('[data-play]'),f=e.target.closest('[data-fav]');if(p){let a=selected.items.find(x=>x.id===p.dataset.play);if(a)play(a)}if(f){let id=f.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);localStorage.setItem('rt_favs',JSON.stringify([...favs]));renderRecords()}});$('search').addEventListener('input',()=>selected?renderRecords():renderFolders());$('toggle').onclick=()=>audio.paused?audio.play():audio.pause();$('back10').onclick=()=>audio.currentTime=Math.max(0,audio.currentTime-10);$('forward10').onclick=()=>audio.currentTime=Math.min(audio.duration||Infinity,audio.currentTime+10);$('seek').oninput=()=>{if(audio.duration)audio.currentTime=audio.duration*Number($('seek').value)/1000};audio.addEventListener('timeupdate',()=>{$('elapsed').textContent=fmt(audio.currentTime);$('duration').textContent=fmt(audio.duration);if(audio.duration)$('seek').value=audio.currentTime/audio.duration*1000});audio.addEventListener('play',()=>{$('toggle').textContent='Ⅱ';if(selected)renderRecords()});audio.addEventListener('pause',()=>{$('toggle').textContent='▶';if(selected)renderRecords()});
-history.replaceState({screen:'home'},'',location.pathname+location.search);
-
-window.addEventListener('popstate',e=>{
-  const state=e.state||{screen:'home'};
-
-  if(state.screen==='home'){
-    showHome();
-  }
-  else if(state.screen==='detail'){
-    openFolder(state.sheikh,false);
-  }
-  else if(state.screen==='year'){
-    openFolder(state.sheikh,false);
-    $('yearContent').classList.remove('hidden');
-    $('open2026').classList.add('hidden');
-  }
-});
+$('sheikhs').addEventListener('click',e=>{let c=e.target.closest('[data-folder]');if(c)openFolder(c.dataset.folder)});$('back').onclick=showHome;$('open2026').onclick=()=>{$('yearContent').classList.remove('hidden');$('open2026').classList.add('hidden')};$('filters').addEventListener('click',e=>{let b=e.target.closest('[data-filter]');if(!b)return;filter=b.dataset.filter;document.querySelectorAll('#filters button').forEach(x=>x.classList.toggle('active',x===b));renderRecords()});$('records').addEventListener('click',e=>{let p=e.target.closest('[data-play]'),f=e.target.closest('[data-fav]');if(p){let a=selected.items.find(x=>x.id===p.dataset.play);if(a)play(a)}if(f){let id=f.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);localStorage.setItem('rt_favs',JSON.stringify([...favs]));renderRecords()}});$('search').addEventListener('input',()=>selected?renderRecords():renderFolders());$('toggle').onclick=()=>audio.paused?audio.play():audio.pause();$('back10').onclick=()=>audio.currentTime=Math.max(0,audio.currentTime-10);$('forward10').onclick=()=>audio.currentTime=Math.min(audio.duration||Infinity,audio.currentTime+10);$('seek').oninput=()=>{if(audio.duration)audio.currentTime=audio.duration*Number($('seek').value)/1000};audio.addEventListener('timeupdate',()=>{$('elapsed').textContent=fmt(audio.currentTime);$('duration').textContent=fmt(audio.duration);if(audio.duration)$('seek').value=audio.currentTime/audio.duration*1000});audio.addEventListener('play',()=>{$('toggle').textContent='Ⅱ';if(selected)renderRecords()});audio.addEventListener('pause',()=>{$('toggle').textContent='▶';if(selected)renderRecords()});
 fetch('audios.json').then(r=>{if(!r.ok)throw Error();return r.json()}).then(data=>{audios=data;let map=new Map();for(let a of audios){let n=a.sheikh;let f=map.get(n);if(!f){f={name:n,logo:a.logo,items:[]};map.set(n,f)}f.items.push(a)}folders=[...map.values()].sort((a,b)=>a.name.localeCompare(b.name));renderFolders()}).catch(()=>$('sheikhs').innerHTML='<div class="empty">Could not load audios.json. Upload it beside index.html.</div>');
 </script></body></html>
